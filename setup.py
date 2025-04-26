@@ -11,6 +11,13 @@ setup(
     packages=find_packages(),
     install_requires=[
         "requests>=2.0",
+        "certifi>=14.05.14",
+        "nulltype",
+        "croniter>=1.0.15",
+        "pyinstaller>=5.13.0",
+        "python_dateutil>=2.5.3",
+        "setuptools>=21.0.0",
+        "urllib3>=1.15.1",
     ],
     classifiers=[
         "Programming Language :: Python :: 3.8",
