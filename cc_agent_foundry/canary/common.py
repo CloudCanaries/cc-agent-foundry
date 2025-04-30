@@ -11,8 +11,8 @@ from enum import Enum
 import requests
 from croniter import croniter
 
-from ccmodule.canary.utils import EnvVarValidatorMixin
-from ccmodule.canary.utils import LoggerMixin
+from .utils import EnvVarValidatorMixin
+from .utils import LoggerMixin
 
 """
 Important ENV_VARS:
@@ -22,21 +22,25 @@ CANARY_ID - sets the canary id to uniquely associate data[REQUIRED]
 CANARY_API_SERVER - location of reporting server[REQUIRED]
 """
 
+
 # Set up logging
 def configure_global_logger():
     logging.basicConfig(
         level=logging.INFO,
-        format="%(levelname)s %(asctime)s %(name)s.%(funcName)s:%(lineno)s +++- %(message)s"
+        format="%(levelname)s %(asctime)s %(name)s.%(funcName)s:%(lineno)s +++- %(message)s",
     )
+
 
 configure_global_logger()
 logger = logging.getLogger("GlobalLogger")
+
 
 class CanaryRunStatus(Enum):
     RUNNING = "RUNNING"
     STOPPED = "STOPPED"
     ERROR = "ERROR"
     NEW = "NEW"
+
 
 class GracefulKiller:
     kill_now = False
@@ -67,6 +71,7 @@ def sleepTillTopOfNextMinute():
     sleeptime = 60 - (t.second + t.microsecond / 1000000.0)
     time.sleep(sleeptime)
 
+
 try:
     sys.path.append("/CC")
 except Exception as e:
@@ -93,12 +98,14 @@ class CanaryBasePrototype(EnvVarValidatorMixin, LoggerMixin, object):
     first_run = True
 
     def __init__(self):
-        '''Setup Logging'''
+        """Setup Logging"""
         self._logger = self.get_logger(self.__class__.__name__)
         self._set_logger_meta()
 
-        '''Validate required environment variables'''
-        env_vars = self.validate_env_vars(['CANARY_API_SERVER', 'API_KEY',"CANARY_ID"], strict=False)
+        """Validate required environment variables"""
+        env_vars = self.validate_env_vars(
+            ["CANARY_API_SERVER", "API_KEY", "CANARY_ID"], strict=False
+        )
 
         self._error_get = False
         self._error_parse = False
@@ -152,20 +159,21 @@ class CanaryBasePrototype(EnvVarValidatorMixin, LoggerMixin, object):
     @property
     def _canary_id(self):
         return os.getenv("CANARY_ID")
-    
+
     @property
     def _is_agent_canary(self):
-        is_agent_canary = os.getenv("IS_AGENT_CANARY", "") .lower()
+        is_agent_canary = os.getenv("IS_AGENT_CANARY", "").lower()
         return is_agent_canary == "true"
-    
+
     @property
     def _canary_schedule(self):
         canary_schedule = os.getenv("CANARY_SCHEDULE")
         if not canary_schedule:
             raise ValueError("Environment variable CANARY_SCHEDULE must be set")
         return canary_schedule
+
     # , '0 0 1 1 *'
-    
+
     def get_response(self):
         """overwritten by actual canary"""
         raise NotImplementedError

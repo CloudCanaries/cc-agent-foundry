@@ -1,17 +1,21 @@
 import os
 import pytest
 from unittest.mock import patch, MagicMock
-from JSONCanaries.ccmodule.canary.common import CanaryBasePrototype, CanaryRunStatus
+from canary.common import CanaryBasePrototype, CanaryRunStatus
 
 
 @pytest.fixture
 def canary_instance():
     """Fixture to create a CanaryBasePrototype instance with mocked environment variables."""
-    with patch.dict(os.environ, {
-        "CANARY_API_SERVER": "http://example.com",
-        "API_KEY": "test_api_key",
-        "CANARY_ID": "test_canary_id"
-    }, clear=True):
+    with patch.dict(
+        os.environ,
+        {
+            "CANARY_API_SERVER": "http://example.com",
+            "API_KEY": "test_api_key",
+            "CANARY_ID": "test_canary_id",
+        },
+        clear=True,
+    ):
         yield CanaryBasePrototype()
 
 
@@ -36,7 +40,9 @@ def test_validate_env_vars(canary_instance):
 def test_missing_env_vars():
     """Test that missing environment variables raise an error."""
     with patch.dict(os.environ, {}, clear=True):
-        with pytest.raises(EnvironmentError, match="Missing required environment variables"):
+        with pytest.raises(
+            EnvironmentError, match="Missing required environment variables"
+        ):
             canary = CanaryBasePrototype()
             canary.validate_env_vars(
                 ["CANARY_API_SERVER", "API_KEY", "CANARY_ID"], strict=False

@@ -13,7 +13,9 @@ class EnvVarValidatorMixin:
                 self.validate_env_vars(['MY_API_KEY', 'MY_API_SECRET'])
     """
 
-    def validate_env_vars(self, required_vars: List[str], strict: bool = False) -> Dict[str, str]:
+    def validate_env_vars(
+        self, required_vars: List[str], strict: bool = False
+    ) -> Dict[str, str]:
         """
         Validates that all required environment variables are set.
 
@@ -45,8 +47,10 @@ class EnvVarValidatorMixin:
 
         return result
 
+
 class LoggerMixin:
     """Mixin to provide consistent logging for classes."""
+
     @staticmethod
     def get_logger(name: str):
         logger = logging.getLogger(name)
