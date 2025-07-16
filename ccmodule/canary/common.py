@@ -158,6 +158,11 @@ class CanaryBasePrototype(EnvVarValidatorMixin, LoggerMixin, JSONMixin, object):
         return os.getenv("CANARY_API_SERVER")
 
     @property
+    def _report_endpoint(self):
+        """configured via env var"""
+        return os.getenv("CANARY_REPORT_ENDPOINT", "canarydata/")
+
+    @property
     def _canary_id(self):
         return os.getenv("CANARY_ID")
 
@@ -185,7 +190,7 @@ class CanaryBasePrototype(EnvVarValidatorMixin, LoggerMixin, JSONMixin, object):
 
     def _report(self, error_get=False, error_parse=False, value=None, latency_ms=None):
         """reports results back to canary server"""
-        url = os.path.join(self._canaryServer, "canarydata/")
+        url = os.path.join(self._canaryServer, self._report_endpoint)
 
         self._logger.info(
             " _report "
