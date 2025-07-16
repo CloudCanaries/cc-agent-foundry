@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="ccmodule",
-    version="0.1.0",
+    version="0.1.1",
     description="Shared Agent Template Library Code",
     author="CloudCanaries",
     author_email="support@cloudcanaries.ai",

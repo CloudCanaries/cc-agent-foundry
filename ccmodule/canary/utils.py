@@ -1,6 +1,7 @@
 import os
 import logging
-from typing import List, Optional, Dict
+from typing import List, Dict
+from datetime import datetime
 
 
 class EnvVarValidatorMixin:
@@ -63,3 +64,26 @@ class LoggerMixin:
         logger.setLevel(logging.INFO)
         logger.propagate = False  # Prevent propagation to the root logger
         return logger
+
+
+class JSONMixin:
+    """Mixin to provide JSON serialization and deserialization methods."""
+
+    @staticmethod
+    def to_json(obj: object) -> str:
+        """Convert an object to a JSON string."""
+        import json
+
+        return json.dumps(obj, default=str)
+
+    @staticmethod
+    def from_json(json_str: str) -> object:
+        """Convert a JSON string back to an object."""
+        import json
+
+        return json.loads(json_str)
+
+    def _json_default(obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return str(obj)

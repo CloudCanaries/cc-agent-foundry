@@ -13,6 +13,7 @@ from croniter import croniter
 
 from .utils import EnvVarValidatorMixin
 from .utils import LoggerMixin
+from .utils import JSONMixin
 
 """
 Important ENV_VARS:
@@ -92,7 +93,7 @@ except Exception as e:
 """
 
 
-class CanaryBasePrototype(EnvVarValidatorMixin, LoggerMixin, object):
+class CanaryBasePrototype(EnvVarValidatorMixin, LoggerMixin, JSONMixin, object):
     """The base class for a Canary"""
 
     first_run = True
