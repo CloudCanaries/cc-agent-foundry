@@ -83,7 +83,7 @@ class JSONMixin:
 
         return json.loads(json_str)
 
-    def _json_default(obj):
+    def _json_default(self, obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
         return str(obj)
