@@ -72,9 +72,6 @@ class OpenAIAssistantClient(LoggerMixin, object):
         request_timeout_s: int = 120,
         max_retries: int = 2,
     ):
-        """Setup Logging"""
-        self._logger = self.get_logger(self.__class__.__name__)
-        self._set_logger_meta()
         if OpenAI is None:
             raise ValueError(
                 "The 'openai' package is not installed. "
@@ -83,24 +80,28 @@ class OpenAIAssistantClient(LoggerMixin, object):
 
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.assistant_id = assistant_id or os.getenv("OPENAI_ASSISTANT_ID")
-        self.client = client or OpenAI(api_key=self.api_key)
         self.request_timeout_s = request_timeout_s
         self.max_retries = max_retries
         self.logger = logger
+
+        """Setup Logging"""
+        self._logger = self.get_logger(self.__class__.__name__)
+        self._set_logger_meta()
 
         if not self.api_key:
             raise ValueError("OPENAI_API_KEY is required")
         if not self.assistant_id:
             raise ValueError("OPENAI_ASSISTANT_ID is required")
 
-    def _set_logger_meta(self):
+        self.client = client or OpenAI(api_key=self.api_key)
 
+    def _set_logger_meta(self):
+        asst = getattr(self, "assistant_id", None) or "UNKNOWN_ASSISTANT"
         formatter = logging.Formatter(
             "%(levelname)s %(asctime)s %(name)s.%(funcName)s:%(lineno)d - "
-            + self.assistant_id
+            + asst
             + " %(message)s"
         )
-        # Remove existing handlers to prevent duplicate logs
         if self._logger.hasHandlers():
             self._logger.handlers.clear()
         handler = logging.StreamHandler(stream=sys.stdout)
