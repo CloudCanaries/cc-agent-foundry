@@ -309,14 +309,19 @@ class OpenAIAssistantMixin:
             self._init_openai_assistant()
 
         if short_recommendations:
+            base_instructions = (
+                "You are a Senior Site Reliability Engineer. Your task is to "
+                "analyze the provided data and offer concise, actionable "
+                "recommendations for resolving any identified issues. "
+                "Keep your recommendations brief and to the point."
+            )
+            merged = (
+                f"{instructions.strip()}\n\n{base_instructions}"
+                if instructions
+                else base_instructions
+            )
             return self._oaiclient.run_text(
-                payload,
-                instructions=(
-                    "Summarize INPUT_JSON into a short, user-friendly "
-                    "recommendations section. Keep it concise, no JSON, "
-                    "no preamble, just the text."
-                ),
-                metadata=metadata,
+                payload, instructions=merged, metadata=metadata
             )
         if parse_json:
             return self._oaiclient.run_json(
