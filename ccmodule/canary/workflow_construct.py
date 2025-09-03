@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-import os
 from typing import List, Optional, Dict, Any, Union
 import requests
 
+from .utils import LoggerMixin
 
 WORKFLOW_INGEST_URL = "canaryableservice/ingest-workflow/"
 
@@ -46,7 +46,7 @@ class WorkflowStep:
         }
 
 
-class WorkflowConstructMixin:
+class WorkflowConstructMixin(LoggerMixin, object):
     """
     Mixin to construct and POST workflow steps JSON to the platform.
     Usage:
@@ -85,6 +85,7 @@ class WorkflowConstructMixin:
 
         self._steps: List[WorkflowStep] = []
         self._next_step_number: int = 1
+        self._logger = self.get_logger(self.__class__.__name__)
 
     def add_step(
         self,
