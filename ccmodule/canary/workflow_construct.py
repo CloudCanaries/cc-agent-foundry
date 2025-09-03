@@ -147,6 +147,7 @@ class WorkflowConstructMixin(LoggerMixin, object):
         timeout: int = 15,
         headers: Optional[Dict[str, str]] = None,
         raise_for_status: bool = True,
+        canary_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         POST the built workflow JSON to the platform.
@@ -156,6 +157,7 @@ class WorkflowConstructMixin(LoggerMixin, object):
             timeout: Requests timeout (seconds).
             headers: Authorization headers to merge with defaults.
             raise_for_status: If True, raise for non-2xx responses.
+            canary_id: Explicit canary UUID to include. If omitted, will use self._canary_id if available.
 
         Returns:
             Response JSON (parsed dict). If body is empty/non-JSON,
@@ -163,7 +165,16 @@ class WorkflowConstructMixin(LoggerMixin, object):
         """
         url = f"{endpoint}/{WORKFLOW_INGEST_URL}"
 
-        payload = self.build_workflow()
+        resolved_canary_id = canary_id or getattr(self, "_canary_id", None)
+        if not resolved_canary_id:
+            raise ValueError(
+                "canary_id is required for workflow ingestion. "
+                "Pass canary_id=... or ensure self._canary_id is set (from CanaryBasePrototype)."
+            )
+        payload = {
+            "canary_id": str(resolved_canary_id),
+            "workflow": self.build_workflow(),
+        }
         final_headers = {"Content-Type": "application/json", **(headers or {})}
 
         resp = requests.post(url, headers=final_headers, json=payload, timeout=timeout)
