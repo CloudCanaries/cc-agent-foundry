@@ -333,13 +333,15 @@ class OpenAIAssistantMixin:
             payload, instructions=instructions, metadata=metadata
         )
 
-    def build_markdown_assistant_instructions(self, *, role: str, input_desc: str, focus_areas: list[str]) -> str:
+    def build_markdown_assistant_instructions(
+        self, *, agent_role: str, input_desc: str, focus_areas: list[str]
+    ) -> str:
         """
         Build standardized assistant instructions for agents that return
         Markdown bullet-point recommendations.
 
         Args:
-            role (str): The agent role (e.g., "AWS IAM/Least-Privilege expert").
+            agent_role (str): The agent role (e.g., "AWS IAM/Least-Privilege expert").
             input_desc (str): Short description of the INPUT_JSON context.
             focus_areas (list[str]): List of key focus areas/actions as strings.
 
@@ -369,7 +371,7 @@ class OpenAIAssistantMixin:
         )
 
         return template.format(
-            ROLE=role,
+            ROLE=agent_role,
             INPUT_DESCRIPTION=input_desc,
             FOCUS_AREAS=focus_str,
         )
