@@ -333,7 +333,7 @@ class OpenAIAssistantMixin:
             payload, instructions=instructions, metadata=metadata
         )
 
-    def build_markdown_assistant_instructions(role: str, input_desc: str, focus_areas: list[str]) -> str:
+    def build_markdown_assistant_instructions(self, *, role: str, input_desc: str, focus_areas: list[str]) -> str:
         """
         Build standardized assistant instructions for agents that return
         Markdown bullet-point recommendations.
