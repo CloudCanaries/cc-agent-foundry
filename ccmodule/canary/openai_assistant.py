@@ -332,3 +332,44 @@ class OpenAIAssistantMixin:
         return self._oaiclient.run_text(
             payload, instructions=instructions, metadata=metadata
         )
+
+    def build_markdown_assistant_instructions(role: str, input_desc: str, focus_areas: list[str]) -> str:
+        """
+        Build standardized assistant instructions for agents that return
+        Markdown bullet-point recommendations.
+
+        Args:
+            role (str): The agent role (e.g., "AWS IAM/Least-Privilege expert").
+            input_desc (str): Short description of the INPUT_JSON context.
+            focus_areas (list[str]): List of key focus areas/actions as strings.
+
+        Returns:
+            str: Formatted assistant instructions string.
+        """
+        focus_str = "\n".join([f"- {area}" for area in focus_areas])
+
+        template = (
+            "You are an on-call {ROLE}. Analyze INPUT_JSON: {INPUT_DESCRIPTION}.\n"
+            "\n"
+            "Return the output in **Markdown** only — a concise list of exactly 5 bullet points.\n"
+            "Do **not** include JSON, numbered lists, code fences, headings, or any extra text.\n"
+            "Each bullet: start with a **bolded issue summary**, then a colon, then 1-2 concrete fixes.\n"
+            "Allowed Markdown: bullet lists (- …), **bold**, `inline code`, and standard links.\n"
+            "If you reference an attached artifact, use this format exactly: 【<fileId>†<fileName>】.\n"
+            "\n"
+            "Focus on concrete actions such as:\n"
+            "{FOCUS_AREAS}\n"
+            "\n"
+            "Output format example (structure only; generate your own content):\n"
+            "- **Issue summary**: specific, actionable fix 1 or fix 2.\n"
+            "- **Another problem**: suggested concrete remediation.\n"
+            "- **Configuration gap**: step to harden or remediate.\n"
+            "- **Risk detected**: action to mitigate.\n"
+            "- **Performance/coverage issue**: fix or scaling adjustment.\n"
+        )
+
+        return template.format(
+            ROLE=role,
+            INPUT_DESCRIPTION=input_desc,
+            FOCUS_AREAS=focus_str,
+        )
