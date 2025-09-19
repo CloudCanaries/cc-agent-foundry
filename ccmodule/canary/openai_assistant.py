@@ -353,11 +353,10 @@ class OpenAIAssistantMixin:
         template = (
             "You are an on-call {ROLE}. Analyze INPUT_JSON: {INPUT_DESCRIPTION}.\n"
             "\n"
-            "Return the output in **Markdown** only — a concise list of exactly 5 bullet points.\n"
-            "Do **not** include JSON, numbered lists, code fences, headings, or any extra text.\n"
+            "Return the output in **Markdown** only — **exactly 5 lines**, each a bullet starting with `- `.\n"
+            "Do **not** include JSON (even inside code fences), numbered lists, code fences, headings, or any extra text.\n"
             "Each bullet: start with a **bolded issue summary**, then a colon, then 1-2 concrete fixes.\n"
             "Allowed Markdown: bullet lists (- …), **bold**, `inline code`, and standard links.\n"
-            "If you reference an attached artifact, use this format exactly: 【<fileId>†<fileName>】.\n"
             "\n"
             "Focus on concrete actions such as:\n"
             "{FOCUS_AREAS}\n"
