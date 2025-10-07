@@ -3,8 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+import sys
 from typing import List, Optional, Dict, Any, Union
 import requests
+import logging
 
 from .utils import LoggerMixin
 
@@ -85,7 +87,24 @@ class WorkflowConstructMixin(LoggerMixin, object):
 
         self._steps: List[WorkflowStep] = []
         self._next_step_number: int = 1
+
+        """Setup Logging"""
         self._logger = self.get_logger(self.__class__.__name__)
+        self._set_logger_meta()
+
+    def _set_logger_meta(self):
+        """Configure logger with workflow-specific metadata."""
+        workflow_name = getattr(self, "_workflow_name", "UNKNOWN_WORKFLOW")
+        formatter = logging.Formatter(
+            "%(levelname)s %(asctime)s %(name)s.%(funcName)s:%(lineno)d - "
+            + f"[{workflow_name}] "
+            + "%(message)s"
+        )
+        if self._logger.hasHandlers():
+            self._logger.handlers.clear()
+        handler = logging.StreamHandler(stream=sys.stdout)
+        handler.setFormatter(formatter)
+        self._logger.addHandler(handler)
 
     def add_step(
         self,

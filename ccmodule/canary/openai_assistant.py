@@ -5,8 +5,10 @@ import os
 import re
 import sys
 import time
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence, Union, TypedDict
 from openai import OpenAI
+from croniter import croniter
 from .utils import LoggerMixin
 
 
@@ -82,7 +84,6 @@ class OpenAIAssistantClient(LoggerMixin, object):
         self.assistant_id = assistant_id or os.getenv("OPENAI_ASSISTANT_ID")
         self.request_timeout_s = request_timeout_s
         self.max_retries = max_retries
-        self.logger = logger
 
         """Setup Logging"""
         self._logger = self.get_logger(self.__class__.__name__)
@@ -169,11 +170,10 @@ class OpenAIAssistantClient(LoggerMixin, object):
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError:
-            if self.logger:
-                self.logger.error(
-                    "Failed to parse assistant JSON; returning default. Raw: %s",
-                    cleaned[:500],
-                )
+            self._logger.error(
+                "Failed to parse assistant JSON; returning default. Raw: %s",
+                cleaned[:500],
+            )
             return default
 
     # ---------- internal ----------
@@ -250,6 +250,46 @@ class OpenAIAssistantMixin:
     """
 
     _oaiclient: OpenAIAssistantClient
+
+    def _get_ai_assistant_enabled(self) -> bool:
+        return os.getenv("AI_ASSISTANT_ENABLED", "true").lower() == "true"
+
+    def _get_ai_assistant_cron(self) -> str:
+        return os.getenv("AI_ASSISTANT_CRON", "0 */12 * * *")
+
+    def _should_run_assistant_now(self) -> bool:
+        """
+        Returns True if the current UTC time is within ±10 minutes of the ai_assistant_cron schedule.
+        """
+        if not self._get_ai_assistant_enabled():
+            return False
+
+        cron_expr = self._get_ai_assistant_cron().strip()
+        now = datetime.now(timezone.utc)
+        now_floor = now.replace(second=0, microsecond=0)
+
+        itr = croniter(cron_expr, now_floor)
+        prev_time = itr.get_prev(datetime)
+        next_time = itr.get_next(datetime)
+
+        window_seconds = 10 * 60
+
+        is_within_window = (
+            abs((now_floor - prev_time).total_seconds()) <= window_seconds
+            or abs((next_time - now_floor).total_seconds()) <= window_seconds
+        )
+
+        if is_within_window:
+            self._oaiclient._logger.info(
+                f"Assistant cron matched within ±10 minutes window "
+                f"(cron='{cron_expr}', now_utc='{now_floor.isoformat()}')."
+            )
+        else:
+            self._oaiclient._logger.info(
+                f"Assistant cron not due (cron='{cron_expr}', now_utc='{now_floor.isoformat()}')."
+            )
+
+        return is_within_window
 
     def _init_openai_assistant(
         self,
