@@ -279,16 +279,6 @@ class OpenAIAssistantMixin:
             or abs((next_time - now_floor).total_seconds()) <= window_seconds
         )
 
-        if is_within_window:
-            self._oaiclient._logger.info(
-                f"Assistant cron matched within ±10 minutes window "
-                f"(cron='{cron_expr}', now_utc='{now_floor.isoformat()}')."
-            )
-        else:
-            self._oaiclient._logger.info(
-                f"Assistant cron not due (cron='{cron_expr}', now_utc='{now_floor.isoformat()}')."
-            )
-
         return is_within_window
 
     def _init_openai_assistant(
