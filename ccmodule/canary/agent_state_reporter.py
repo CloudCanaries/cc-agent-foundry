@@ -47,7 +47,7 @@ class AgentStateReporter(LoggerMixin, object):
         self.api_key = os.getenv("API_KEY")
 
         self.canary_id: Optional[str] = os.getenv("CANARY_ID")
-        self.agent_type: Optional[str] = None
+        self.agent_type: Optional[str] = os.getenv("CANARY_TYPE")
 
         self.current_state: str = self.STATE_OBSERVE
         self.last_report_time: Optional[datetime.datetime] = None
@@ -63,8 +63,8 @@ class AgentStateReporter(LoggerMixin, object):
 
     def _set_logger_meta(self):
         """Configure logger with agent-specific metadata."""
-        agent_type = getattr(self, "CANARY_TYPE", "UNKNOWN_AGENT")
-        canary_id = getattr(self, "CANARY_ID", "NO_CANARY_ID")
+        agent_type = getattr(self, "agent_type", "UNKNOWN_AGENT")
+        canary_id = getattr(self, "canary_id", "NO_CANARY_ID")
         formatter = logging.Formatter(
             "%(levelname)s %(asctime)s %(name)s.%(funcName)s:%(lineno)d - "
             + f"[{agent_type}|{canary_id[:8]}] "
