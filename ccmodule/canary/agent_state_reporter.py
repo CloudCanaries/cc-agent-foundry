@@ -138,7 +138,7 @@ class AgentStateReporter(LoggerMixin, object):
             return False
 
         payload = {
-            "agent_id": self.canary_id,
+            "canary_id": self.canary_id,
             "agent_type": self.agent_type or "UNKNOWN",
             "ooda_state": self.current_state,
             "metadata": metadata or {},
