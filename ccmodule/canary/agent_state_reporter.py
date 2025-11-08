@@ -14,7 +14,7 @@ from typing import Dict, Optional
 from .utils import LoggerMixin
 
 
-AGENT_STATE_UPDATE = "canaryableservice/agent-state/"
+AGENT_STATE_UPDATE = "agent-state/"
 
 
 class AgentStateReporter(LoggerMixin, object):
