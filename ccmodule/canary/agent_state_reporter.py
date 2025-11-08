@@ -145,7 +145,7 @@ class AgentStateReporter(LoggerMixin, object):
         }
 
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Api-Key {self.api_key}",
             "Content-Type": "application/json",
         }
 
