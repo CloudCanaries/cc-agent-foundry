@@ -99,7 +99,7 @@ class ColorPaletteMixin:
 
     DEFAULT_COLOR_PALETTE: Dict[str, str] = {
         "green": "#16a34a",
-        "yellow": "#f59e0b",
+        "yellow": "#fcd830",
         "red": "#dc2626",
         "blue": "#3b82f6",
         "gray": "#6b7280",
