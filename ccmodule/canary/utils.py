@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import List, Dict
+from typing import Dict, List, Optional
 from datetime import datetime
 
 
@@ -87,3 +87,44 @@ class JSONMixin:
         if isinstance(obj, datetime):
             return obj.isoformat()
         return str(obj)
+
+
+class ColorPaletteMixin:
+    """
+    Shared color palette + helpers for all worker agents.
+
+    Agents can override `_palette_overrides` if a custom color is ever required,
+    but the common palette stays consistent otherwise.
+    """
+
+    DEFAULT_COLOR_PALETTE: Dict[str, str] = {
+        "green": "#16a34a",
+        "yellow": "#f59e0b",
+        "red": "#dc2626",
+        "blue": "#3b82f6",
+        "gray": "#6b7280",
+    }
+
+    def _palette_overrides(self) -> Optional[Dict[str, str]]:
+        """Hook for subclasses needing extra named colors."""
+        return None
+
+    def _palette(self) -> Dict[str, str]:
+        palette = {k.lower(): v for k, v in self.DEFAULT_COLOR_PALETTE.items()}
+        overrides = self._palette_overrides()
+        if overrides:
+            palette.update({k.lower(): v for k, v in overrides.items()})
+        return palette
+
+    def _hex(self, color_name: Optional[str]) -> str:
+        """
+        Resolve a friendly color name (green/yellow/...) into a shared hex value.
+        Accepts already-hex values and falls back to gray.
+        """
+        palette = self._palette()
+        if not color_name:
+            return palette["gray"]
+        normalized = color_name.strip()
+        if normalized.startswith("#"):
+            return normalized
+        return palette.get(normalized.lower(), palette["gray"])

@@ -14,6 +14,7 @@ from croniter import croniter
 from .utils import EnvVarValidatorMixin
 from .utils import LoggerMixin
 from .utils import JSONMixin
+from .utils import ColorPaletteMixin
 
 """
 Important ENV_VARS:
@@ -93,7 +94,9 @@ except Exception as e:
 """
 
 
-class CanaryBasePrototype(EnvVarValidatorMixin, LoggerMixin, JSONMixin, object):
+class CanaryBasePrototype(
+    ColorPaletteMixin, EnvVarValidatorMixin, LoggerMixin, JSONMixin, object
+):
     """The base class for a Canary"""
 
     first_run = True
