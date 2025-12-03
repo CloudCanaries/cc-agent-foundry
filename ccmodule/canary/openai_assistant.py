@@ -5,7 +5,7 @@ import os
 import re
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Sequence, Union, TypedDict
 from openai import OpenAI
 from croniter import croniter
@@ -259,27 +259,26 @@ class OpenAIAssistantMixin:
 
     def _should_run_assistant_now(self) -> bool:
         """
-        Returns True if the current UTC time is within ±10 minutes of the ai_assistant_cron schedule.
+        Returns True if the current UTC minute matches the assistant cron (with a small tolerance).
+        We check the current minute and ±1 minute to allow for minor drift, instead of a wide window
+        that could cause the assistant to run on every agent execution.
         """
         if not self._get_ai_assistant_enabled():
             return False
 
         cron_expr = self._get_ai_assistant_cron().strip()
-        now = datetime.now(timezone.utc)
-        now_floor = now.replace(second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
 
-        itr = croniter(cron_expr, now_floor)
-        prev_time = itr.get_prev(datetime)
-        next_time = itr.get_next(datetime)
+        try:
+            for offset in (0, -60, 60):
+                candidate = now + timedelta(seconds=offset)
+                if croniter.match(cron_expr, candidate):
+                    return True
+        except Exception as e:
+            # self._logger.warning("Invalid assistant cron '%s': %s", cron_expr, e)
+            pass
 
-        window_seconds = 10 * 60
-
-        is_within_window = (
-            abs((now_floor - prev_time).total_seconds()) <= window_seconds
-            or abs((next_time - now_floor).total_seconds()) <= window_seconds
-        )
-
-        return is_within_window
+        return False
 
     def _init_openai_assistant(
         self,
