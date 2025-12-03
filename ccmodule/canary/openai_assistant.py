@@ -270,15 +270,14 @@ class OpenAIAssistantMixin:
         now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
 
         try:
-            for offset in (0, -60, 60):
-                candidate = now + timedelta(seconds=offset)
-                if croniter.match(cron_expr, candidate):
-                    return True
+            itr = croniter(cron_expr, now)
+            prev_slot = itr.get_prev(datetime)
+            tolerance_seconds = 60
+            delta = abs((now - prev_slot).total_seconds())
+            return delta <= tolerance_seconds
         except Exception as e:
             # self._logger.warning("Invalid assistant cron '%s': %s", cron_expr, e)
-            pass
-
-        return False
+            return False
 
     def _init_openai_assistant(
         self,
