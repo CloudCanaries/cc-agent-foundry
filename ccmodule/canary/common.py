@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import os
 import signal
@@ -115,6 +116,7 @@ class CanaryBasePrototype(
         self._error_parse = False
         self._uuid = str(uuid.uuid4())
         self.status = CanaryRunStatus.NEW
+        self.metric_alarm_configs = self._load_metric_alarm_configs()
 
     def _set_logger_meta(self):
         canary_id = self._canary_id
@@ -180,6 +182,26 @@ class CanaryBasePrototype(
         if not canary_schedule:
             raise ValueError("Environment variable CANARY_SCHEDULE must be set")
         return canary_schedule
+
+    def _load_metric_alarm_configs(self):
+        raw = os.getenv("CANARY_METRIC_ALARM_CONFIGS")
+        if not raw:
+            return {}
+        try:
+            data = json.loads(raw)
+            if isinstance(data, dict):
+                return data
+            self._logger.warning(
+                "Invalid CANARY_METRIC_ALARM_CONFIGS payload (expected dict)"
+            )
+        except json.JSONDecodeError as exc:
+            self._logger.warning("Failed to parse CANARY_METRIC_ALARM_CONFIGS: %s", exc)
+        return {}
+
+    def get_metric_alarm_config(self, metric_name: str):
+        if not metric_name:
+            return None
+        return self.metric_alarm_configs.get(metric_name)
 
     # , '0 0 1 1 *'
 
