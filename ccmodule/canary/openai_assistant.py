@@ -276,8 +276,8 @@ class OpenAIAssistantMixin:
                 return False
 
             interval = (next_slot - prev_slot).total_seconds()
-            base_tolerance = interval / 2 if interval > 0 else 60
-            tolerance_seconds = min(60, base_tolerance)
+            base_tolerance = interval * 0.1 if interval > 0 else 30
+            tolerance_seconds = max(15, min(90, base_tolerance))
 
             delta_prev = abs((now - prev_slot).total_seconds())
             delta_next = abs((next_slot - now).total_seconds())
