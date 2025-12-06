@@ -5,7 +5,7 @@ import os
 import re
 import sys
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence, Union, TypedDict
 from openai import OpenAI
 from croniter import croniter
@@ -259,9 +259,7 @@ class OpenAIAssistantMixin:
 
     def _should_run_assistant_now(self) -> bool:
         """
-        Returns True if the current UTC minute matches the assistant cron (with a small tolerance).
-        We check the current minute and ±1 minute to allow for minor drift, instead of a wide window
-        that could cause the assistant to run on every agent execution.
+        Return True when the current UTC time is sufficiently close to a cron slot.
         """
         if not self._get_ai_assistant_enabled():
             return False
@@ -272,11 +270,21 @@ class OpenAIAssistantMixin:
         try:
             itr = croniter(cron_expr, now)
             prev_slot = itr.get_prev(datetime)
-            tolerance_seconds = 60
-            delta = abs((now - prev_slot).total_seconds())
-            return delta <= tolerance_seconds
-        except Exception as e:
-            # self._logger.warning("Invalid assistant cron '%s': %s", cron_expr, e)
+            next_slot = itr.get_next(datetime)
+
+            if not prev_slot or not next_slot:
+                return False
+
+            interval = (next_slot - prev_slot).total_seconds()
+            base_tolerance = interval / 2 if interval > 0 else 60
+            tolerance_seconds = min(60, base_tolerance)
+
+            delta_prev = abs((now - prev_slot).total_seconds())
+            delta_next = abs((next_slot - now).total_seconds())
+            delta_min = min(delta_prev, delta_next)
+
+            return delta_min <= tolerance_seconds
+        except Exception:
             return False
 
     def _init_openai_assistant(
