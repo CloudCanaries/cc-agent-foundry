@@ -109,6 +109,7 @@ class CanaryBasePrototype(
     first_run = True
 
     def __init__(self):
+        super().__init__()
         """Setup Logging"""
         self._logger = self.get_logger(self.__class__.__name__)
         self._set_logger_meta()

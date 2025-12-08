@@ -45,6 +45,8 @@ class MetricAlarmEvaluatorMixin(LoggerMixin, object):
     def get_metric_alarm_config(self, metric_name: str):
         if not metric_name:
             return None
+        if not hasattr(self, "metric_alarm_configs"):
+            self.metric_alarm_configs = self._load_metric_alarm_configs()
         return self.metric_alarm_configs.get(metric_name)
 
     def _coerce_value_for_comparison(self, value, data_type):
