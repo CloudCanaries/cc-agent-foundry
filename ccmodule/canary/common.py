@@ -220,30 +220,47 @@ class CanaryBasePrototype(
             return str(value)
         return value
 
-    def _eval_simple_comparison(self, op: str, value, min_thr, max_thr) -> bool:
-        inclusive = "OrEqualTo" in op
-        if "LessThanMinThreshold" in op:
-            return value <= min_thr if inclusive else value < min_thr
-        if "GreaterThanMinThreshold" in op:
-            return value >= min_thr if inclusive else value > min_thr
-        if "LessThanMaxThreshold" in op:
-            return value <= max_thr if inclusive else value < max_thr
-        if "GreaterThanMaxThreshold" in op:
-            return value >= max_thr if inclusive else value > max_thr
-        if op == "EqualTo":
-            target = min_thr if min_thr is not None else max_thr
-            return value == target
-        if op == "NotEqualTo":
-            target = min_thr if min_thr is not None else max_thr
-            return value != target
+    def _is_boolean_operator(self, op: str) -> bool:
+        return op in ("EqualTo", "NotEqualTo")
+
+    def _is_string_operator(self, op: str) -> bool:
+        return op in ("StringContainsCaseSensitive", "StringContainsNotCaseSensitive")
+
+    def _is_json_operator(self, op: str) -> bool:
+        return op == "ParsableJSON"
+
+    def _uses_min_bound(self, op: str) -> bool:
+        return "MinThreshold" in op
+
+    def _uses_max_bound(self, op: str) -> bool:
+        return "MaxThreshold" in op or self._is_boolean_operator(op)
+
+    def _uses_greater_than(self, op: str) -> bool:
+        return "GreaterThan" in op
+
+    def _uses_less_than(self, op: str) -> bool:
+        return "LessThan" in op
+
+    def _includes_boundary_value(self, op: str) -> bool:
+        return "OrEqualTo" in op
+
+    def _is_complex_operator(self, op: str) -> bool:
+        return "_" in (op or "")
+
+    def _eval_boolean(self, op: str, value, min_thr, max_thr) -> bool:
+        _compared = value == min_thr and value == max_thr
+        if "Not" in op:
+            _compared = not _compared
+        return _compared
+
+    def _eval_string(self, op: str, value: str, min_thr: str, max_thr: str) -> bool:
+        if not isinstance(value, str):
+            return False
         if op == "StringContainsCaseSensitive":
-            return isinstance(value, str) and (
-                (min_thr in value if min_thr else False)
-                or (max_thr in value if max_thr else False)
+            return (min_thr in value if min_thr else False) and (
+                max_thr in value if max_thr else False
             )
         if op == "StringContainsNotCaseSensitive":
-            if not isinstance(value, str):
-                return False
             lv = value.lower()
             checks = []
             if min_thr:
@@ -251,13 +268,51 @@ class CanaryBasePrototype(
             if max_thr:
                 checks.append(str(max_thr).lower() in lv)
             return any(checks) if checks else False
-        if op == "ParsableJSON":
-            try:
-                json.loads(json.dumps(value))
-                return True
-            except Exception:
-                return False
         return False
+
+    def _eval_json(self, value) -> bool:
+        try:
+            json.loads(json.dumps(value))
+            return True
+        except Exception:
+            return False
+
+    def _eval_numeric(self, op: str, value, min_thr, max_thr) -> bool:
+        inclusive = self._includes_boundary_value(op)
+        boundary = min_thr if self._uses_min_bound(op) else max_thr
+        if boundary is None:
+            return False
+
+        def _as_number(v):
+            if isinstance(v, (int, float)):
+                return v
+            try:
+                return float(v)
+            except Exception:
+                return 0
+
+        v = _as_number(value)
+        b = _as_number(boundary)
+        if self._uses_less_than(op):
+            return v <= b if inclusive else v < b
+        if self._uses_greater_than(op):
+            return v >= b if inclusive else v > b
+        return False
+
+    def _eval_simple_comparison(self, op: str, value, min_thr, max_thr) -> bool:
+        if self._is_boolean_operator(op):
+            return self._eval_boolean(op, value, min_thr, max_thr)
+        if self._is_string_operator(op):
+            return self._eval_string(op, value, min_thr, max_thr)
+        if self._is_json_operator(op):
+            return self._eval_json(value)
+        if op == "EqualTo":
+            target = min_thr if min_thr is not None else max_thr
+            return value == target
+        if op == "NotEqualTo":
+            target = min_thr if min_thr is not None else max_thr
+            return value != target
+        return self._eval_numeric(op, value, min_thr, max_thr)
 
     def _evaluate_comparison_operator(self, op: str, value, min_thr, max_thr) -> bool:
         if not op:
