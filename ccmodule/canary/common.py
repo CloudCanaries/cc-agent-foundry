@@ -8,6 +8,7 @@ import time
 import uuid
 from datetime import timedelta
 from enum import Enum
+from typing import Optional
 
 import requests
 from croniter import croniter
@@ -202,6 +203,125 @@ class CanaryBasePrototype(
         if not metric_name:
             return None
         return self.metric_alarm_configs.get(metric_name)
+
+    def _coerce_value_for_comparison(self, value, data_type):
+        if value is None:
+            return None
+        if data_type in ("integer", "decimal"):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+        if data_type == "boolean":
+            if isinstance(value, str):
+                return value.strip().lower() in ("true", "1", "yes")
+            return bool(value)
+        if data_type == "string":
+            return str(value)
+        return value
+
+    def _eval_simple_comparison(self, op: str, value, min_thr, max_thr) -> bool:
+        inclusive = "OrEqualTo" in op
+        if "LessThanMinThreshold" in op:
+            return value <= min_thr if inclusive else value < min_thr
+        if "GreaterThanMinThreshold" in op:
+            return value >= min_thr if inclusive else value > min_thr
+        if "LessThanMaxThreshold" in op:
+            return value <= max_thr if inclusive else value < max_thr
+        if "GreaterThanMaxThreshold" in op:
+            return value >= max_thr if inclusive else value > max_thr
+        if op == "EqualTo":
+            target = min_thr if min_thr is not None else max_thr
+            return value == target
+        if op == "NotEqualTo":
+            target = min_thr if min_thr is not None else max_thr
+            return value != target
+        if op == "StringContainsCaseSensitive":
+            return isinstance(value, str) and (
+                (min_thr in value if min_thr else False)
+                or (max_thr in value if max_thr else False)
+            )
+        if op == "StringContainsNotCaseSensitive":
+            if not isinstance(value, str):
+                return False
+            lv = value.lower()
+            checks = []
+            if min_thr:
+                checks.append(str(min_thr).lower() in lv)
+            if max_thr:
+                checks.append(str(max_thr).lower() in lv)
+            return any(checks) if checks else False
+        if op == "ParsableJSON":
+            try:
+                json.loads(json.dumps(value))
+                return True
+            except Exception:
+                return False
+        return False
+
+    def _evaluate_comparison_operator(self, op: str, value, min_thr, max_thr) -> bool:
+        if not op:
+            return False
+        if "_AND_" in op:
+            left, right = op.split("_AND_", 1)
+            return self._eval_simple_comparison(left, value, min_thr, max_thr) and (
+                self._eval_simple_comparison(right, value, min_thr, max_thr)
+            )
+        if "_OR_" in op:
+            left, right = op.split("_OR_", 1)
+            return self._eval_simple_comparison(left, value, min_thr, max_thr) or (
+                self._eval_simple_comparison(right, value, min_thr, max_thr)
+            )
+        return self._eval_simple_comparison(op, value, min_thr, max_thr)
+
+    def evaluate_metric_alarm_status(self, metric_name: str, value):
+        """
+        Mirror backend alarm evaluation so agent-side health matches server alarms.
+        Returns one of comparison_true_status/comparison_false_status/no_data_status or None if no config exists.
+        """
+        cfg = self.get_metric_alarm_config(metric_name) or {}
+        if not cfg:
+            return None
+
+        data_type = cfg.get("data_type")
+        comparison_operator = cfg.get("comparison_operator")
+        min_thr = cfg.get("min_threshold")
+        max_thr = cfg.get("max_threshold")
+
+        coerced_value = self._coerce_value_for_comparison(value, data_type)
+        if coerced_value is None:
+            return cfg.get("no_data_status", "NO_DATA")
+
+        # Normalize thresholds for numeric comparisons
+        def _norm_threshold(thr):
+            if thr is None:
+                return None
+            try:
+                return float(thr)
+            except (TypeError, ValueError):
+                return thr
+
+        min_thr = _norm_threshold(min_thr)
+        max_thr = _norm_threshold(max_thr)
+
+        result = self._evaluate_comparison_operator(
+            comparison_operator, coerced_value, min_thr, max_thr
+        )
+        return (
+            cfg.get("comparison_true_status", "OK")
+            if result
+            else cfg.get("comparison_false_status", "ALARMING")
+        )
+
+    def _color_from_alarm_status(self, status: Optional[str]) -> str:
+        palette = self._palette()
+        if status == "ALARMING":
+            return palette["red"]
+        if status == "OK":
+            return palette["green"]
+        if status == "NO_DATA":
+            return palette["gray"]
+        return palette["blue"]
 
     # , '0 0 1 1 *'
 
