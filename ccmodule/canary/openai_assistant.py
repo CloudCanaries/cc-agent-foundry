@@ -254,6 +254,12 @@ class OpenAIAssistantMixin:
     def _get_ai_assistant_enabled(self) -> bool:
         return os.getenv("AI_ASSISTANT_ENABLED", "true").lower() == "true"
 
+    def _get_autonomous_mode_enabled(self) -> bool:
+        """
+        Gate for autonomous actions. Defaults to disabled unless explicitly turned on.
+        """
+        return os.getenv("AUTONOMOUS_MODE_ENABLED", "false").lower() == "true"
+
     def _get_ai_assistant_cron(self) -> str:
         return os.getenv("AI_ASSISTANT_CRON", "0 */12 * * *")
 
@@ -318,6 +324,7 @@ class OpenAIAssistantMixin:
         default: Union[Dict[str, Any], List[Any], str] = "[]",
         metadata: Optional[Dict[str, Any]] = None,
         short_recommendations: bool = False,
+        allow_when_autonomous_disabled: bool = True,
     ) -> Union[str, Dict[str, Any], List[Any]]:
         """
         Dispatch helper used by agents.
@@ -336,12 +343,23 @@ class OpenAIAssistantMixin:
             Optional metadata for the thread.
         short_recommendations : bool
             If True, prepends instructions to keep recommendations short.
+        allow_when_autonomous_disabled : bool
+            If False and AUTONOMOUS_MODE_ENABLED is off, returns `default` without calling the assistant.
 
         Returns
         -------
         str | dict | list
             The assistant's text reply, or parsed JSON if `parse_json` is True.
         """
+        if (
+            not self._get_autonomous_mode_enabled()
+            and not allow_when_autonomous_disabled
+        ):
+            self._logger.info(
+                "Autonomous mode disabled; skipping OpenAI assistant execution."
+            )
+            return default
+
         if not hasattr(self, "_oaiclient"):
             self._init_openai_assistant()
 
