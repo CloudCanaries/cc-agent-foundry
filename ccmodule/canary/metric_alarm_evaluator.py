@@ -192,7 +192,7 @@ class MetricAlarmEvaluatorMixin(LoggerMixin, object):
         if not cfg:
             return None
         if cfg.get("enabled") is False:
-            return None
+            return "NO_DATA"
 
         data_type = cfg.get("data_type")
         comparison_operator = cfg.get("comparison_operator")
