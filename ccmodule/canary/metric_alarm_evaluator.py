@@ -47,6 +47,16 @@ class MetricAlarmEvaluatorMixin(LoggerMixin, object):
             return None
         return self.metric_alarm_configs.get(metric_name)
 
+    def is_metric_alarm_enabled(self, metric_name: str) -> bool:
+        """
+        Return False only when a metric alarm exists and is explicitly disabled.
+        Missing configs default to enabled behavior.
+        """
+        cfg = self.get_metric_alarm_config(metric_name) or {}
+        if cfg and cfg.get("enabled") is False:
+            return False
+        return True
+
     def _coerce_value_for_comparison(self, value, data_type):
         if value is None:
             return None
